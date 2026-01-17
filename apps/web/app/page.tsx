@@ -30,10 +30,70 @@ import {
 export default function HomePage(): React.JSX.Element {
   const [isLoaded, setIsLoaded] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState(false);
 
   useEffect(() => {
     setIsLoaded(true);
+    // Check if already authenticated
+    if (typeof window !== "undefined") {
+      const auth = localStorage.getItem("nooch-preview-auth");
+      if (auth === "true") {
+        setIsAuthenticated(true);
+      }
+    }
   }, []);
+
+  const handlePasswordSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (password === "calimocho") {
+      localStorage.setItem("nooch-preview-auth", "true");
+      setIsAuthenticated(true);
+      setError(false);
+    } else {
+      setError(true);
+    }
+  };
+
+  // Password gate
+  if (!isAuthenticated) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-nooch-dark px-6">
+        <div className="w-full max-w-md">
+          <div className="mb-8 text-center">
+            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-coral-400 to-orange-400">
+              <span className="text-2xl font-extrabold text-white">n</span>
+            </div>
+            <h1 className="text-2xl font-extrabold text-white">Preview Access</h1>
+            <p className="mt-2 text-gray-400">Enter the password to view this site</p>
+          </div>
+          <form onSubmit={handlePasswordSubmit} className="space-y-4">
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => {
+                setPassword(e.target.value);
+                setError(false);
+              }}
+              placeholder="Enter password"
+              className={`w-full rounded-xl border-2 ${error ? "border-red-500" : "border-white/10"} bg-white/5 px-4 py-3 text-white placeholder:text-gray-500 focus:border-coral-400 focus:outline-none focus:ring-2 focus:ring-coral-400/20 transition-all`}
+              autoFocus
+            />
+            {error && (
+              <p className="text-sm text-red-400">Incorrect password. Try again.</p>
+            )}
+            <button
+              type="submit"
+              className="w-full rounded-xl bg-gradient-to-r from-coral-400 to-orange-400 py-3 font-semibold text-white transition-all hover:shadow-lg hover:shadow-coral-400/25"
+            >
+              Enter
+            </button>
+          </form>
+        </div>
+      </div>
+    );
+  }
 
   // Close mobile menu when clicking a link
   const closeMobileMenu = () => setMobileMenuOpen(false);
