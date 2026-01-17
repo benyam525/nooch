@@ -44,6 +44,9 @@ enum NotificationType {
   RESPONSE_APPROVED
   RESPONSE_REJECTED
   COACH_MESSAGE
+  CHECKIN_DUE
+  CHECKIN_MISSED
+  CLIENT_AT_RISK
 }
 
 // ============================================
@@ -110,8 +113,23 @@ model ClientProfile {
   preferences        Json?
   onboardingComplete Boolean @default(false)
 
+  // Health metrics
+  currentWeight       Float?
+  targetWeight        Float?
+  height              Float?    // in cm
+  dateOfBirth         DateTime?
+  activityLevel       String?   // sedentary, light, moderate, active, very_active
+  dietaryRestrictions String[]  // array of restrictions
+
+  // Risk tracking
+  riskScore      Float?    // 0-100, higher = more at risk
+  riskFactors    Json?     // { missedCheckins: 2, decliningCompliance: true, ... }
+  lastRiskUpdate DateTime?
+
   // Progress tracking
-  progressLogs ProgressLog[]
+  progressLogs   ProgressLog[]
+  weeklyCheckins WeeklyCheckin[]
+  progressPhotos ProgressPhoto[]
 
   // Messages
   conversations Conversation[]
@@ -121,6 +139,7 @@ model ClientProfile {
 
   @@index([coachId])
   @@index([userId])
+  @@index([riskScore])
 }
 
 // ============================================
@@ -266,6 +285,64 @@ model ProgressLog {
   @@index([clientProfileId])
   @@index([logType])
   @@index([logDate])
+}
+
+model WeeklyCheckin {
+  id              String        @id @default(cuid())
+  clientProfileId String
+  clientProfile   ClientProfile @relation(fields: [clientProfileId], references: [id], onDelete: Cascade)
+
+  // Time period
+  weekStartDate DateTime
+  weekEndDate   DateTime
+
+  // Client self-report
+  complianceScore Int       // 1-10 scale
+  currentWeight   Float?
+  notes           String?   @db.Text
+
+  // Coach feedback
+  coachNotes  String? @db.Text
+  coachRating Int?    // Coach's assessment 1-10
+
+  // Calculated metrics
+  weightChange    Float?  // vs previous week
+  complianceTrend String? // "improving", "stable", "declining"
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([clientProfileId, weekStartDate])
+  @@index([clientProfileId])
+  @@index([weekStartDate])
+  @@index([complianceScore])
+}
+
+model ProgressPhoto {
+  id              String        @id @default(cuid())
+  clientProfileId String
+  clientProfile   ClientProfile @relation(fields: [clientProfileId], references: [id], onDelete: Cascade)
+
+  // File info
+  fileName     String
+  fileType     String
+  fileSize     Int
+  fileUrl      String  // Cloudinary URL
+  thumbnailUrl String?
+
+  // Metadata
+  photoType String    // "progress", "meal", "workout"
+  caption   String?
+  takenAt   DateTime? // When photo was taken
+
+  // AI analysis (optional)
+  aiAnalysis Json? // { estimatedCalories: 500, foods: [...] }
+
+  createdAt DateTime @default(now())
+
+  @@index([clientProfileId])
+  @@index([photoType])
+  @@index([createdAt])
 }
 
 // ============================================

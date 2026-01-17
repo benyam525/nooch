@@ -11,6 +11,8 @@ import messageRoutes from "./routes/messages";
 import approvalRoutes from "./routes/approvals";
 import methodologyRoutes from "./routes/methodology";
 import notificationRoutes from "./routes/notifications";
+import checkinRoutes from "./routes/checkins";
+import photoRoutes from "./routes/photos";
 
 const app = express();
 
@@ -48,6 +50,8 @@ app.use("/api/messages", messageRoutes);
 app.use("/api/approvals", approvalRoutes);
 app.use("/api/methodology", methodologyRoutes);
 app.use("/api/notifications", notificationRoutes);
+app.use("/api/checkins", checkinRoutes);
+app.use("/api/photos", photoRoutes);
 
 // Error handling
 app.use(errorHandler);

@@ -8,12 +8,14 @@ import {
   CheckCircle,
   FileText,
   Settings,
+  AlertTriangle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { name: "Clients", href: "/dashboard/clients", icon: Users },
+  { name: "At Risk", href: "/dashboard/at-risk", icon: AlertTriangle },
   { name: "Approvals", href: "/dashboard/approvals", icon: CheckCircle },
   { name: "Methodology", href: "/dashboard/methodology", icon: FileText },
   { name: "Settings", href: "/dashboard/settings", icon: Settings },

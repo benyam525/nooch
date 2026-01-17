@@ -8,6 +8,7 @@ const demoClients = [
     id: "1",
     goals: "Lose 20 lbs and build healthy eating habits",
     onboardingComplete: true,
+    riskScore: 78,
     user: {
       id: "u1",
       email: "sarah@example.com",
@@ -22,6 +23,7 @@ const demoClients = [
     id: "2",
     goals: "Build muscle mass with clean eating",
     onboardingComplete: true,
+    riskScore: 35,
     user: {
       id: "u2",
       email: "mike@example.com",
@@ -36,6 +38,7 @@ const demoClients = [
     id: "3",
     goals: null,
     onboardingComplete: false,
+    riskScore: null,
     user: {
       id: "u3",
       email: "emma@example.com",

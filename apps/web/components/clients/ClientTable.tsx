@@ -4,12 +4,14 @@ import Link from "next/link";
 import { formatRelativeTime, getInitials } from "@nooch/shared";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { RiskBadge } from "@/components/clients/RiskBadge";
 import { MoreHorizontal } from "lucide-react";
 
 interface Client {
   id: string;
   goals: string | null;
   onboardingComplete: boolean;
+  riskScore?: number | null;
   user: {
     id: string;
     email: string;
@@ -19,7 +21,7 @@ interface Client {
   };
   _count: {
     progressLogs: number;
-    conversations: number;
+    conversations?: number;
   };
   createdAt: Date;
 }
@@ -39,6 +41,7 @@ export function ClientTable({ clients }: ClientTableProps): React.JSX.Element {
             <th className="px-4 py-3 text-left text-sm font-medium">
               Progress Logs
             </th>
+            <th className="px-4 py-3 text-left text-sm font-medium">Risk</th>
             <th className="px-4 py-3 text-left text-sm font-medium">Status</th>
             <th className="px-4 py-3 text-left text-sm font-medium">Joined</th>
             <th className="px-4 py-3 text-right text-sm font-medium">
@@ -51,7 +54,7 @@ export function ClientTable({ clients }: ClientTableProps): React.JSX.Element {
             <tr key={client.id} className="border-b last:border-0">
               <td className="px-4 py-3">
                 <Link
-                  href={`/clients/${client.id}`}
+                  href={`/dashboard/clients/${client.id}`}
                   className="flex items-center gap-3 hover:underline"
                 >
                   <Avatar className="h-8 w-8">
@@ -80,6 +83,9 @@ export function ClientTable({ clients }: ClientTableProps): React.JSX.Element {
               </td>
               <td className="px-4 py-3">
                 <span className="text-sm">{client._count.progressLogs}</span>
+              </td>
+              <td className="px-4 py-3">
+                <RiskBadge score={client.riskScore} size="sm" />
               </td>
               <td className="px-4 py-3">
                 <span
