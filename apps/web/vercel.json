@@ -1,0 +1,5 @@
+{
+  "installCommand": "cd ../.. && pnpm install",
+  "buildCommand": "cd ../.. && pnpm --filter=@nooch/shared build && pnpm --filter=@nooch/web build",
+  "outputDirectory": ".next"
+}
