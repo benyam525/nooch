@@ -1,0 +1,314 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ============================================
+// ENUMS
+// ============================================
+
+enum UserRole {
+  COACH
+  CLIENT
+}
+
+enum ApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  EDITED
+}
+
+enum MessageType {
+  USER_MESSAGE
+  AI_RESPONSE
+  COACH_MESSAGE
+  SYSTEM
+}
+
+enum DocumentStatus {
+  UPLOADING
+  PROCESSING
+  READY
+  FAILED
+}
+
+enum NotificationType {
+  NEW_MESSAGE
+  APPROVAL_NEEDED
+  RESPONSE_APPROVED
+  RESPONSE_REJECTED
+  COACH_MESSAGE
+}
+
+// ============================================
+// USER & AUTH MODELS
+// ============================================
+
+model User {
+  id        String   @id @default(cuid())
+  clerkId   String   @unique
+  email     String   @unique
+  firstName String?
+  lastName  String?
+  imageUrl  String?
+  role      UserRole
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Coach relations
+  coachProfile  CoachProfile?
+  clients       ClientProfile[]    @relation("CoachClients")
+  methodologies CoachMethodology[]
+
+  // Client relations
+  clientProfile ClientProfile? @relation("UserClientProfile")
+
+  // Message relations
+  sentMessages Message[] @relation("SentMessages")
+
+  // Notification relations
+  notifications Notification[]
+
+  @@index([clerkId])
+  @@index([email])
+  @@index([role])
+}
+
+model CoachProfile {
+  id     String @id @default(cuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  bio       String?
+  specialty String?
+  timezone  String  @default("UTC")
+
+  // Settings
+  autoApproveSimple Boolean @default(false)
+  dailyDigest       Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ClientProfile {
+  id     String @id @default(cuid())
+  userId String @unique
+  user   User   @relation("UserClientProfile", fields: [userId], references: [id], onDelete: Cascade)
+
+  coachId String
+  coach   User   @relation("CoachClients", fields: [coachId], references: [id], onDelete: Cascade)
+
+  // Client details
+  goals              String?
+  preferences        Json?
+  onboardingComplete Boolean @default(false)
+
+  // Progress tracking
+  progressLogs ProgressLog[]
+
+  // Messages
+  conversations Conversation[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([coachId])
+  @@index([userId])
+}
+
+// ============================================
+// COACH METHODOLOGY & RAG
+// ============================================
+
+model CoachMethodology {
+  id      String @id @default(cuid())
+  coachId String
+  coach   User   @relation(fields: [coachId], references: [id], onDelete: Cascade)
+
+  // Document info
+  fileName String
+  fileType String
+  fileSize Int
+  fileUrl  String?
+
+  // Processing status
+  status          DocumentStatus @default(UPLOADING)
+  processingError String?
+
+  // Vector DB reference
+  pineconeNamespace String?
+  chunkCount        Int     @default(0)
+
+  // Metadata
+  title       String?
+  description String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([coachId])
+  @@index([status])
+}
+
+// ============================================
+// MESSAGING & CONVERSATIONS
+// ============================================
+
+model Conversation {
+  id              String        @id @default(cuid())
+  clientProfileId String
+  clientProfile   ClientProfile @relation(fields: [clientProfileId], references: [id], onDelete: Cascade)
+
+  // Conversation metadata
+  title    String?
+  isActive Boolean @default(true)
+
+  messages Message[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([clientProfileId])
+  @@index([isActive])
+}
+
+model Message {
+  id             String       @id @default(cuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  senderId String?
+  sender   User?   @relation("SentMessages", fields: [senderId], references: [id], onDelete: SetNull)
+
+  type    MessageType
+  content String      @db.Text
+
+  // For AI responses
+  aiResponse AIResponse?
+
+  // Message metadata
+  metadata Json?
+  isRead   Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([conversationId])
+  @@index([senderId])
+  @@index([type])
+  @@index([createdAt])
+}
+
+model AIResponse {
+  id        String  @id @default(cuid())
+  messageId String  @unique
+  message   Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  // Original AI generation
+  originalContent String @db.Text
+
+  // Edited content (if coach modified)
+  editedContent String? @db.Text
+
+  // Final content sent to client
+  finalContent String @db.Text
+
+  // Approval workflow
+  status          ApprovalStatus @default(PENDING)
+  reviewedAt      DateTime?
+  reviewedBy      String?
+  rejectionReason String?
+
+  // RAG metadata
+  sourceDocs Json?
+  confidence Float?
+
+  // Tokens/cost tracking
+  promptTokens     Int?
+  completionTokens Int?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status])
+  @@index([reviewedBy])
+}
+
+// ============================================
+// PROGRESS TRACKING
+// ============================================
+
+model ProgressLog {
+  id              String        @id @default(cuid())
+  clientProfileId String
+  clientProfile   ClientProfile @relation(fields: [clientProfileId], references: [id], onDelete: Cascade)
+
+  // Log content
+  logType String
+  content String @db.Text
+
+  // Parsed data (extracted by AI)
+  parsedData Json?
+
+  // Metadata
+  logDate DateTime @default(now())
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([clientProfileId])
+  @@index([logType])
+  @@index([logDate])
+}
+
+// ============================================
+// NOTIFICATIONS
+// ============================================
+
+model Notification {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  type  NotificationType
+  title String
+  body  String
+
+  // Reference to related entity
+  referenceId   String?
+  referenceType String?
+
+  isRead   Boolean @default(false)
+  isPushed Boolean @default(false)
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([isRead])
+  @@index([createdAt])
+}
+
+// ============================================
+// PUSH NOTIFICATION TOKENS
+// ============================================
+
+model PushToken {
+  id       String  @id @default(cuid())
+  userId   String
+  token    String  @unique
+  platform String
+  isActive Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([isActive])
+}
