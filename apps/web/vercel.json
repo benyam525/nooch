@@ -1,4 +1,0 @@
-{
-  "buildCommand": "cd ../.. && pnpm --filter=@nooch/shared build && pnpm --filter=@nooch/web build",
-  "installCommand": "cd ../.. && pnpm install"
-}
