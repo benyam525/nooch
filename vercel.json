@@ -1,5 +1,0 @@
-{
-  "buildCommand": "pnpm --filter=@nooch/shared build && pnpm --filter=@nooch/web build",
-  "outputDirectory": "apps/web/.next",
-  "installCommand": "pnpm install"
-}
